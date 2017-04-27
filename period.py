@@ -43,6 +43,14 @@ class Period:
         for period_date in list_of_periods:
             self.add_period(period_date)
 
+    def split_series(self, values_df):
+        """
+        :param values_df: a pandas Series
+        :return: a list of pandas Series stricly comprised between periods values
+        """
+        convert = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
+        return [values_df[convert(self.periods[p-1,1]):convert(self.periods[p,0])][1:-1] for p in range(1,len(self.periods))]
+
     def plot(self, axe=None, y_pos=1):
         month = MonthLocator(bymonth=range(4, 11), interval=2)
         month_f = DateFormatter('%m')
