@@ -34,14 +34,19 @@ class Rolling:
                 indices.append(ind)
         periods = sequence_to_period(
             indices, threshold=contatenate_periods_threshold)
-        return periods
+        periods = np.array([self.date_index[time_index] for period in periods for time_index in period])
+        return periods.reshape(-1,2)
 
-    def plot_diversity(self, axe=plt.subplots()[1]):
+    def plot_diversity(self, axe=None):
+        if axe is None:
+            axe = plt.subplot()
         axe.plot_date(self.date_index, self.rolling_unique, 'b-')
         axe.set_title(
             "Number of different values in a window ofsize %i" % self.window_length)
 
-    def plot_bar(self, axe=plt.subplots()[1], n_bins=5):
+    def plot_bar(self, axe=None, n_bins=5):
+        if axe is None:
+            axe = plt.subplot()
         count = np.array([(np.sum(self.rolling_unique <= i))
                           for i in range(1, n_bins + 1)])
         axe.bar(range(1, n_bins + 1), count, width=0.35, color='r')
