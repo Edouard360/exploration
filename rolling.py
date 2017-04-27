@@ -34,8 +34,8 @@ class Rolling:
                 indices.append(ind)
         periods = sequence_to_period(
             indices, threshold=contatenate_periods_threshold)
-        periods = np.array([self.date_index[time_index] for period in periods for time_index in period])
-        return periods.reshape(-1,2)
+        index_to_date = np.vectorize(lambda ind: self.date_index[ind])
+        return index_to_date(periods)
 
     def plot_diversity(self, axe=None):
         if axe is None:

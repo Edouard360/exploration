@@ -22,4 +22,6 @@ def sequence_to_period(sequence, threshold = 15, plot=False):
 
     if(plot):
         plt.plot(sequence_diff, np.ones(len(sequence_diff)), 'ro')
-    return periods
+
+    periods = np.array([time_index for period in periods for time_index in period])
+    return periods.reshape(-1, 2)
