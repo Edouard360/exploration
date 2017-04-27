@@ -59,10 +59,3 @@ class Rolling:
         self.plot_diversity(axes[0])
         self.plot_bar(axes[1], n_bins=n_bins)
         plt.tight_layout()
-
-
-"""
-Pandas built-in `rolling` function was running to slow.
-rolling_win = self.values_df.rolling(window_length)
-self.rolling_unique = rolling_win.apply(lambda x: len(np.unique(x)))
-"""
