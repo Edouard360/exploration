@@ -6,11 +6,11 @@ insight.py
 """
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from insight_tools import check_type
+from insight_tools import check_type, plot
 
 class Insight:
 
-    def __init__(self,obs_deb,obs_vit,obs_tmp,obs_pui):
+    def __init__(self,obs_deb=None,obs_vit=None,obs_tmp=None,obs_pui=None):
         self.obs_deb = obs_deb
         self.obs_vit = obs_vit
         self.obs_tmp = obs_tmp
@@ -32,3 +32,9 @@ class Insight:
         self.obs_vit.plot(ax_vit, xlim)
         self.obs_tmp.plot(ax_tmp,xlim)
         self.obs_pui.plot(ax_pui, xlim)
+    
+    def plot_nine_frames(self,list_values_df):
+        fig,axes = plt.subplots(nrows=3,ncols=3,figsize=(15, 10))
+        for i, df in enumerate(list_values_df[:9]):
+            ax = axes[i % 3, i // 3]
+            plot(df,ax = ax);ax.legend().remove()

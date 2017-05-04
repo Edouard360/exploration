@@ -4,11 +4,11 @@
 rolling.py
 The series is sometimes oscillating between very few values.
 Using a rolling window, we can analyse the diversity of the values.
-We might want to remove periods where only two or three values occur.
-Pandas built-in `rolling` function was running to slow. (cf. EOF)
+We might want to remove intervals where only two or three values occur.
+Pandas built-in `rolling` function was running to slow.
 @author: edouardm
 """
-from tools import sequence_to_period
+from tools import sequence_to_interval
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,7 +18,7 @@ class Rolling:
     The Rolling class with usage:
     rolling = Rolling(values_df.values,values_df.index)
     rolling.plot_summary()
-    periods = rolling.periods()
+    intervals = rolling.intervals()
     """
 
     def __init__(self, values, date_index, window_length=100):
@@ -27,15 +27,15 @@ class Rolling:
         self.rolling_unique = np.array(
             [len(set(values[max(0, i + 1 - window_length):i + 1])) for i in range(len(values))])
 
-    def periods(self, number_different_values_expected=5, contatenate_periods_threshold=15):
+    def intervals(self, number_different_values_expected=5, contatenate_intervals_threshold=15):
         indices = []
         for ind, value in enumerate(self.rolling_unique):
             if(value < number_different_values_expected):
                 indices.append(ind)
-        periods = sequence_to_period(
-            indices, threshold=contatenate_periods_threshold)
+        intervals = sequence_to_interval(
+            indices, threshold=contatenate_intervals_threshold)
         index_to_date = np.vectorize(lambda ind: self.date_index[ind])
-        return index_to_date(periods)
+        return index_to_date(intervals)
 
     def plot_diversity(self, axe=None):
         if axe is None:
