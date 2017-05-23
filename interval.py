@@ -6,7 +6,7 @@ Created on Thu Apr 27 08:23:37 2017
 @author: edouardm
 """
 import numpy as np
-from datetime import datetime,timedelta,time
+from datetime import datetime, timedelta, time
 import matplotlib.pyplot as plt
 from matplotlib.dates import MonthLocator, YearLocator, DateFormatter
 import unittest
@@ -28,16 +28,16 @@ class Interval:
         start, end = interval_date[0], interval_date[1]
         ind_low, ind_high = np.sum(start > self.intervals[:, 1]), np.sum(
             end > self.intervals[:, 0])
-        if(ind_low == ind_high):
+        if (ind_low == ind_high):
             self.intervals = np.insert(self.intervals, [ind_low], [
-                                     [start, end]], axis=0)
+                [start, end]], axis=0)
         else:
             new_end = max(end, self.intervals[ind_high - 1, 1])
             new_start = min(start, self.intervals[ind_low, 0])
             self.intervals = np.delete(
                 self.intervals, range(ind_low, ind_high), axis=0)
             self.intervals = np.insert(self.intervals, [ind_low], [
-                                     [new_start, new_end]], axis=0)
+                [new_start, new_end]], axis=0)
 
     def update(self, list_of_intervals):
         for interval_date in list_of_intervals:
@@ -49,27 +49,48 @@ class Interval:
         :return: a list of pandas Series stricly comprised between intervals values
         """
         convert = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
-        return [values_df[convert(self.intervals[p-1,1]):convert(self.intervals[p,0])][1:-1] for p in range(1,len(self.intervals))]
+        return [values_df[convert(self.intervals[p - 1, 1]):convert(self.intervals[p, 0])][1:-1] for p in
+                range(1, len(self.intervals))]
 
     def split_accordingly(self, values_df):
         convert = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
         return [values_df[convert(interval[0]):convert(interval[1])] for interval in self.intervals]
 
-    def valid_ante_interval(self, intervals_end,hours = 1):
+    def valid_ante_interval(self, intervals_end, hours=1):
         """
         :param intervals_end: a numpy column of intervals starts
         :return: valid intervals (no intersection with self.intervals)
         """
-        intervals = np.concatenate((intervals_end - timedelta(hours=hours),intervals_end),axis = 1)
-        valid_intervals_index = np.array([np.sum(interval[0] > self.intervals[:, 1]) == np.sum(interval[1] > self.intervals[:, 0]) for interval in intervals])
+        intervals = np.concatenate((intervals_end - timedelta(hours=hours), intervals_end), axis=1)
+        valid_intervals_index = np.array(
+            [np.sum(interval[0] > self.intervals[:, 1]) == np.sum(interval[1] > self.intervals[:, 0]) for interval in
+             intervals])
         if hours == 0:
-            index_start = np.array([np.sum(end > self.intervals[:, 1]) for end in intervals_end],dtype=np.intp) - 1
-            to_change = index_start>=0
+            index_start = np.array([np.sum(end > self.intervals[:, 1]) for end in intervals_end], dtype=np.intp) - 1
+            to_change = index_start >= 0
             not_to_change = np.logical_not(to_change)
             index_start = index_start[to_change]
-            intervals[to_change,0] = self.intervals[index_start,1]
-            intervals[not_to_change,0] = intervals[not_to_change,1] - timedelta(hours = 1)
+            intervals[to_change, 0] = self.intervals[index_start, 1]
+            intervals[not_to_change, 0] = intervals[not_to_change, 1] - timedelta(hours=1)
         return intervals[valid_intervals_index]
+
+    def separate_intervals(self, healthy=(0.1, 0.3), unhealthy=(0.7, 1.0), min_duration=24):
+        """
+        To separate an interval in two different set. The healthy and unhealthy signals.
+        :param healthy: a tuple. The healthy series will be in the period [0.1*length,0.3*length]
+        :param unhealthy: a tuple. The unhealthy series will be in the period [0.7*length,1.0*length]
+        :param min_duration: in hours.
+        :return:
+        """
+        length_intervals = (self.intervals[:, 1] - self.intervals[:, 0])
+        valid_intervals = length_intervals > timedelta(hours=min_duration)
+        length_intervals = length_intervals[valid_intervals]
+        intervals = self.intervals[valid_intervals]
+        healthy_series = np.array(
+            list(zip(intervals[:, 0] + length_intervals * healthy[0], intervals[:, 0] + length_intervals * healthy[1])))
+        unhealthy_series = np.array(list(
+            zip(intervals[:, 0] + length_intervals * unhealthy[0], intervals[:, 0] + length_intervals * unhealthy[1])))
+        return healthy_series, unhealthy_series
 
     def plot(self, axe=None, y_pos=1):
         month = MonthLocator(bymonth=range(4, 11), interval=2)
@@ -91,7 +112,6 @@ class Interval:
 
 
 class TestPeriod(unittest.TestCase):
-
     def test_update(self):
         interval_1 = [datetime(2014, 4, 1), datetime(2014, 8, 1)]
         interval_2 = [datetime(2015, 4, 1), datetime(2015, 8, 1)]
@@ -133,10 +153,10 @@ class TestPeriod(unittest.TestCase):
             datetime.combine(start_day, time(hour=5, minute=10)),
             datetime.combine(start_day, time(hour=6, minute=10)),
             datetime.combine(start_day, time(hour=7, minute=50))]
-        intervals_start = np.array(intervals_start).reshape(-1,1)
-        ante_interval = interval.valid_ante_interval(intervals_start)
+        intervals_start = np.array(intervals_start).reshape(-1, 1)
+        ante_interval = interval.valid_interval(intervals_start)
         self.assertEqual(len(ante_interval), 2)
-        ante_interval = interval.valid_ante_interval(intervals_start,hours=0)
+        ante_interval = interval.valid_interval(intervals_start, hours=0)
         self.assertEqual(len(ante_interval), 3)
 
 

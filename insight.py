@@ -38,3 +38,11 @@ class Insight:
         for i, df in enumerate(list_values_df[:9]):
             ax = axes[i % 3, i // 3]
             plot(df,ax = ax);ax.legend().remove()
+
+    def plot(self,observations,start,end):
+        n_obs = len(observations)
+        xlim = (start, end)
+        fig, axes = plt.subplots(nrows=n_obs, ncols=1, figsize=(15, 10), sharex=True)
+        for i,obs in enumerate(observations):
+            ax = axes[i]
+            plot(obs.values_df,ax = ax,xlim = xlim);ax.legend().remove()
