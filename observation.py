@@ -1,17 +1,10 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 from datetime import timedelta
 from tools import low_pass_filter, bandstop_filter, sequence_to_interval, lazyprop
-from export_series import Exporter
 from insight_tools import plot
-from insight import Insight
 from rolling import Rolling
 from interval import Interval
-from exploitation.exploitation import Exploitation
-
-pd.options.mode.chained_assignment = None
-
 
 class Observation:
     def __init__(self, path, files_name, files_tag, format="%d-%b-%y %H:%M:%S.0", ncol=4):
@@ -36,9 +29,8 @@ class Observation:
     def split_valid_intervals_df(self, hours=50):
         return self.get_valid_interval(hours=hours).split_accordingly(self.values_df)
 
-    def split_healthy_unhealthy(self):
-        healthy_intervals, unhealthy_intervals = self.longest_valid_intervals.separate_intervals(healthy=(0.1, 0.3),
-                                                                                                 unhealthy=(0.7, 1.0))
+    def split_healthy_unhealthy(self,healthy=(0.1, 0.3),unhealthy=(0.7, 0.9)):
+        healthy_intervals, unhealthy_intervals = self.longest_valid_intervals.separate_intervals(healthy,unhealthy)
         healthy_ts = Interval(healthy_intervals).split_accordingly(self.values_df)
         unhealthy_ts = Interval(unhealthy_intervals).split_accordingly(self.values_df)
         return healthy_ts, unhealthy_ts
@@ -104,72 +96,3 @@ class Observation:
 
     def plot(self, xlim=None, auto_set_y=False, **kargs):
         plot(self.full_df, xlim, auto_set_y, **kargs)
-
-
-PATH = "../Data/GMPP_IRSDI1/"
-
-fnames = [
-    "A1-DEB1-1.txt"]  # ,"A1-DEB1-2.txt","A1-DEB1-3.txt","A1-DEB1-4.txt","A1-DEB2-1.txt","A1-DEB2-2.txt","A1-DEB2-3.txt","A1-DEB2-4.txt"]
-tags = ["deb1_1"]  # ,"deb1_2","deb1_3","deb1_4","deb2_1","deb2_2","deb2_3","deb2_4"]
-obs_deb = Observation(PATH, fnames, tags, format="%Y-%m-%dT%H:%M:%S.000Z", ncol=2)
-
-healthy_ts, unhealthy_ts = obs_deb.split_healthy_unhealthy()
-
-exporter = Exporter()
-exporter.export_ts(healthy_ts, unhealthy_ts)
-
-'''
-fnames = ["A1-TEM1-.txt","A1-TEM2-.txt","A1-TEM3-1.txt","A1-TEM3-2.txt","A1-TEM3-3.txt","A1-TEM3-4.txt"]
-tags = ["tmp-inj","tmp-fuites-joint","tmp-eau1","tmp-eau2","tmp-eau3","tmp-eau4"]
-obs_tmp = Observation(PATH,fnames,tags,format="%Y-%m-%dT%H:%M:%S.000Z",ncol=2)
-'''
-
-'''
-fnames = ["A1-DEB3-1.txt","A1-DEB3-2.txt","A1-DEB3-3.txt","A1-DEB3-4.txt"]
-tags = ["deb3_1","deb3_2","deb3_3","deb3_4"]
-obs_deb_3 = Observation(PATH,fnames,tags,format="%Y-%m-%dT%H:%M:%S.000Z",ncol=2)
-
-obs_pre = Observation(PATH,["A1-PRE-.txt"],["pre"],format="%Y-%m-%dT%H:%M:%S.000Z",ncol=2)
-obs_pre.smooth()
-obs_pui = Observation(PATH,["A1-PUI-.txt"],["pui"],format="%Y-%m-%dT%H:%M:%S.000Z",ncol=2)
-'''
-
-# obs_pre = Observation("./GMPP/A1-PRE-/",["A1-PRE-_5.txt"],["pre"])
-
-# obs_pui = Observation("./GMPP/",["A1-PUI-.txt"],["pui"])
-# obs_tmp = Observation("./GMPP/",["A1-TEM-.txt"],["tmp"])
-# obs_vit = Observation("./GMPP/",["A1-VIT1.txt","A1-VIT2.txt"],["vit1","vit2"])
-# obs_vit = Observation("./GMPP/",["A1-VIT1.txt"],["vit1"])
-
-# obs_deb = Observation("./GMPP/",["A1-DEB1.txt","A1-DEB2.txt","A1-DEB3.txt","A1-DEB4.txt"],["deb1","deb2","deb3","deb4"])
-# obs_deb = Observation("./GMPP/",["A1-DEB1.txt","A1-DEB2.txt","A1-DEB3.txt","A1-DEB4.txt"],["deb1","deb2","deb3","deb4"])
-
-# list_values_df = obs_deb.split_valid_intervals_df()
-
-# intervals_low_sample = np.array(obs_tmp.intervals_low_sample())
-# intervals_low_sample[18] '2015-03-03 23:59:00' - '2015-03-05 00:00:00'
-# intervals = Interval(intervals_low_sample)
-# intervals.split_accordingly(obs_tmp)
-# [plot(df.diff().var(axis=1).rolling(4).mean().ix[:-1],ax = plt.subplots()[1]) for df in list_values_df[:5]]
-# list_values_df[0].rolling(100,axis=0).corr().min(axis=2).min(axis=0).plot()
-# print(len(list_values_df))
-
-# start = '2008-01-09 12:10:00'
-# end = '2008-01-13 16:10:00'
-# start = '2010-04-01 12:10:00'
-# end = '2010-09-01 16:10:00'
-# xlim = (start,end)
-# obs_iter = [obs_tmp,obs_deb,obs_deb_3,obs_pre,obs_pui]
-# [plot(df) for df in list_values_df]
-# [plot(df) for df in list_values_df[:20]]
-# insight = Insight()
-# insight.plot_nine_frames(list_values_df)
-# insight.plot(obs_iter,start,end)
-# insight.plot("2013-05-01","2013-05-02")
-
-# exp = [Exploitation(df) for df in list_values_df]
-# exp[0].potential_plot(w_var = 200,w_auto = 200)
-# exp.compute_top_discord(w_length = 40)
-# exp.correlation_plot()
-# exp.variation_plot()
-# exp[0].plot()

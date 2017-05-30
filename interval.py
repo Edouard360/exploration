@@ -74,11 +74,11 @@ class Interval:
             intervals[not_to_change, 0] = intervals[not_to_change, 1] - timedelta(hours=1)
         return intervals[valid_intervals_index]
 
-    def separate_intervals(self, healthy=(0.1, 0.3), unhealthy=(0.7, 1.0), min_duration=24):
+    def separate_intervals(self, healthy, unhealthy, min_duration=24):
         """
         To separate an interval in two different set. The healthy and unhealthy signals.
-        :param healthy: a tuple. The healthy series will be in the period [0.1*length,0.3*length]
-        :param unhealthy: a tuple. The unhealthy series will be in the period [0.7*length,1.0*length]
+        :param healthy: a tuple. The healthy series will be in the period [0.1*length,0.3*length] - healthy=(0.1, 0.3)
+        :param unhealthy: a tuple. The unhealthy series will be in the period [0.7*length,1.0*length] - unhealthy=(0.7, 1.0)
         :param min_duration: in hours.
         :return:
         """
