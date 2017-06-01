@@ -24,16 +24,16 @@ class Observation:
         df.head().fillna(method='bfill', inplace=True)
         self.df = df
         if self.ncol == 4:
-            self.values_df = df.ix[:, ["value" in column for column in df.columns]]
+            self.df = df.ix[:, ["value" in column for column in df.columns]]
             self.level_df = df.ix[:, ["level" in column for column in df.columns]]
 
     def split_valid_intervals_df(self, hours=50):
-        return self.get_valid_interval(hours=hours).split_accordingly(self.values_df)
+        return self.get_valid_interval(hours=hours).split_accordingly(self.df)
 
     def split_healthy_unhealthy(self,healthy=(0.1, 0.3),unhealthy=(0.7, 0.9)):
         healthy_intervals, unhealthy_intervals = self.longest_valid_intervals.separate_intervals(healthy,unhealthy)
-        healthy_ts = Interval(healthy_intervals).split_accordingly(self.values_df)
-        unhealthy_ts = Interval(unhealthy_intervals).split_accordingly(self.values_df)
+        healthy_ts = Interval(healthy_intervals).split_accordingly(self.df)
+        unhealthy_ts = Interval(unhealthy_intervals).split_accordingly(self.df)
         return healthy_ts, unhealthy_ts
 
     def get_valid_interval(self, hours=50):
@@ -54,22 +54,22 @@ class Observation:
     @lazyprop
     def intervals_low_sample(self, hours=1):
         print("Analysing intervals with low sampling rate")
-        time_btw = self.values_df.index[1:] - self.values_df.index[:-1]
+        time_btw = self.df.index[1:] - self.df.index[:-1]
         ind_tmp = time_btw > timedelta(hours=hours)
         start_ind = np.concatenate((ind_tmp, [False]))
         end_ind = np.concatenate(([False], ind_tmp))
-        return np.array(list(zip(self.values_df.index[start_ind], self.values_df.index[end_ind])))
+        return np.array(list(zip(self.df.index[start_ind], self.df.index[end_ind])))
 
     @lazyprop
     def intervals_low_diversity(self):
         print("Analysing intervals with low diversity")
-        rolling = Rolling(self.values_df.ix[:, 0].values.ravel(), self.values_df.index)
+        rolling = Rolling(self.df.ix[:, 0].values.ravel(), self.df.index)
         return rolling.intervals()
 
     @lazyprop
     def intervals_bad_level(self):
         print("Analysing intervals with bad level")
-        bad_timestamp_value = self.values_df.index[(self.values_df == self.values_df.max()[0]).any(axis=1)]
+        bad_timestamp_value = self.df.index[(self.df == self.df.max()[0]).any(axis=1)]
         if self.ncol == 4:
             is_bad = np.vectorize(lambda label: label in ["Bad", "Bad/M"])
             bad_timestamp_label = self.level_df.index[(is_bad(self.level_df)).any(axis=1)]
@@ -88,12 +88,12 @@ class Observation:
         return self.intervals_bad_level[:, 1].reshape(-1, 1)
 
     def smooth(self, cutoff=0.1):
-        self.values_df = self.values_df.assign(
-            smooth=low_pass_filter(self.values_df.ix[:, 0].values.ravel(), cutoff=cutoff))
+        self.df = self.df.assign(
+            smooth=low_pass_filter(self.df.ix[:, 0].values.ravel(), cutoff=cutoff))
 
     def smooth_stop(self, cutoff=[0.1, 0.9]):
-        self.values_df = self.values_df.assign(
-            smooth_stop=bandstop_filter(self.values_df.ix[:, 0].values.ravel(), cutoff=cutoff))
+        self.df = self.df.assign(
+            smooth_stop=bandstop_filter(self.df.ix[:, 0].values.ravel(), cutoff=cutoff))
 
     def plot(self, xlim=None, auto_set_y=False, **kargs):
         plot(self.df, xlim, auto_set_y, **kargs)

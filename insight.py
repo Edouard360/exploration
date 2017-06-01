@@ -45,4 +45,4 @@ class Insight:
         fig, axes = plt.subplots(nrows=n_obs, ncols=1, figsize=(15, 10), sharex=True)
         for i,obs in enumerate(observations):
             ax = axes[i]
-            plot(obs.values_df,ax = ax,xlim = xlim);ax.legend().remove()
+            plot(obs.df,ax = ax,xlim = xlim);ax.legend().remove()
