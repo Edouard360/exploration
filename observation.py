@@ -15,16 +15,17 @@ class Observation:
             if self.ncol == 4:
                 df.columns = ["date", "value_" + tag, "quality_" + tag, "level_" + tag]
             else:
-                df.columns = ["date", "value_" + tag]
+                df.columns = ["date", tag]
             df.drop_duplicates(subset="date", inplace=True)
             df['date'] = pd.to_datetime(df['date'], format=format)
             df.set_index('date', inplace=True)
-        full_df = pd.concat(list_df, axis=1)
-        full_df.fillna(method='ffill', inplace=True)
-        full_df.head().fillna(method='bfill', inplace=True)
-        self.full_df = full_df
-        self.values_df = full_df.ix[:, ["value" in column for column in full_df.columns]]
-        self.level_df = full_df.ix[:, ["level" in column for column in full_df.columns]]
+        df = pd.concat(list_df, axis=1)
+        df.fillna(method='ffill', inplace=True)
+        df.head().fillna(method='bfill', inplace=True)
+        self.df = df
+        if self.ncol == 4:
+            self.values_df = df.ix[:, ["value" in column for column in df.columns]]
+            self.level_df = df.ix[:, ["level" in column for column in df.columns]]
 
     def split_valid_intervals_df(self, hours=50):
         return self.get_valid_interval(hours=hours).split_accordingly(self.values_df)
@@ -95,4 +96,4 @@ class Observation:
             smooth_stop=bandstop_filter(self.values_df.ix[:, 0].values.ravel(), cutoff=cutoff))
 
     def plot(self, xlim=None, auto_set_y=False, **kargs):
-        plot(self.full_df, xlim, auto_set_y, **kargs)
+        plot(self.df, xlim, auto_set_y, **kargs)
