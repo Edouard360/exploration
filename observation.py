@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from datetime import timedelta,datetime
 from tools import low_pass_filter, bandstop_filter, sequence_to_interval, lazyprop
-from insight_tools import plot
 from rolling import Rolling
 from interval import Interval
 import dateutil.parser
@@ -109,5 +108,4 @@ class Observation:
         self.df = self.df.assign(
             smooth_stop=bandstop_filter(self.df.ix[:, 0].values.ravel(), cutoff=cutoff))
 
-    def plot(self, xlim=None, auto_set_y=False, **kargs):
-        plot(self.df, xlim, auto_set_y, **kargs)
+
