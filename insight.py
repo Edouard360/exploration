@@ -19,6 +19,8 @@ class Plot:
         else:
             df = self.list_df[i]
         # plt.figure(figsize=(width, height))
+        if hasattr(df,"reactor_site"):
+            print("Nuclear reactor : "+str(df.reactor_site))
         print("From : " + str(df.index[0].strftime("%d/%m/%Y"))
               + "\nTo   : " + str(df.index[-1].strftime("%d/%m/%Y")))
         if not tight_boolean:

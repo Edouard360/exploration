@@ -54,13 +54,20 @@ class Interval:
 
     def split_accordingly(self, values_df):
         convert = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")
-        return [values_df[convert(interval[0]):convert(interval[1])] for interval in self.intervals]
+        list_df = []
+        for interval in self.intervals:
+            df = values_df[convert(interval[0]):convert(interval[1])].iloc[1:-1]
+            df.reactor_site = values_df.reactor_site
+            list_df += [df]
+        return list_df
 
-    def valid_ante_interval(self, intervals_end, hours=1):
+    def valid_ante_interval(self, intervals_end, hours=1, min_hours=timedelta(hours=0)):
         """
         :param intervals_end: a numpy column of intervals starts
         :return: valid intervals (no intersection with self.intervals)
         """
+        if (type(min_hours) is not timedelta):
+            min_hours = timedelta(hours=min_hours)
         intervals = np.concatenate((intervals_end - timedelta(hours=hours), intervals_end), axis=1)
         valid_intervals_index = np.array(
             [np.sum(interval[0] > self.intervals[:, 1]) == np.sum(interval[1] > self.intervals[:, 0]) for interval in
@@ -72,7 +79,7 @@ class Interval:
             index_start = index_start[to_change]
             intervals[to_change, 0] = self.intervals[index_start, 1]
             intervals[not_to_change, 0] = intervals[not_to_change, 1] - timedelta(hours=1)
-        return intervals[valid_intervals_index]
+        return [interval for interval in intervals[valid_intervals_index] if interval[1] - interval[0] >= min_hours]
 
     def separate_intervals(self, healthy, unhealthy, min_duration=24):
         """
@@ -154,10 +161,12 @@ class TestPeriod(unittest.TestCase):
             datetime.combine(start_day, time(hour=6, minute=10)),
             datetime.combine(start_day, time(hour=7, minute=50))]
         intervals_start = np.array(intervals_start).reshape(-1, 1)
-        ante_interval = interval.valid_interval(intervals_start)
+        ante_interval = interval.valid_ante_interval(intervals_start)
         self.assertEqual(len(ante_interval), 2)
-        ante_interval = interval.valid_interval(intervals_start, hours=0)
+        ante_interval = interval.valid_ante_interval(intervals_start, hours=0)
         self.assertEqual(len(ante_interval), 3)
+        ante_interval = interval.valid_ante_interval(intervals_start, hours=1)
+        self.assertEqual(len(ante_interval), 2)
 
 
 if __name__ == '__main__':
