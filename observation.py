@@ -9,13 +9,13 @@ import dateutil.parser
 
 class Observation:
     def __init__(self, path, reactor_site, suffix_list, format="%Y-%m-%dT%H:%M:%S.000Z", ncol=2, hours_bad_level=15,
-                 hours_interval=0, min_hours=5):
-        print("Loading in memory %i observations..." % (int(len(suffix_list))))
+                 hours_interval=0, min_hours=5, verbose=0):
+        self.verboseprint = print if verbose else lambda *a, **k: None
+        self.verboseprint("Loading in memory %i observations..." % (int(len(suffix_list)),))
         # 2013-2015 : format : "%d-%b-%y %H:%M:%S.0"
         files_name = [reactor_site + "-" + suffix + ".txt" for suffix in suffix_list]
         list_df = [pd.read_csv(path + file_name, sep=";") for file_name in files_name]
         self.ncol = ncol
-        self.reactor_site = reactor_site
         for df, tag in zip(list_df, suffix_list):
             if self.ncol == 4:
                 df.columns = ["date", "value_" + tag, "quality_" + tag, "level_" + tag]
@@ -24,10 +24,14 @@ class Observation:
             df.drop_duplicates(subset="date", inplace=True)
             df['date'] = pd.to_datetime(df['date'], format=format)
             df.set_index('date', inplace=True)
+        self.verboseprint("Concatenation...")
         df = pd.concat(list_df, axis=1)
+        self.verboseprint("Forward Filling...")
         df.fillna(method='ffill', inplace=True)
-        df.head().fillna(method='bfill', inplace=True)
+        self.verboseprint("Backward Filling...")
+        df.fillna(method='bfill', inplace=True)
         self.df = df
+        self.df.reactor_site = reactor_site
         if self.ncol == 4:
             self.df = df.ix[:, ["value" in column for column in df.columns]]
             self.level_df = df.ix[:, ["level" in column for column in df.columns]]
@@ -74,7 +78,7 @@ class Observation:
 
     @lazyprop
     def intervals_low_sample(self):
-        print("Analysing intervals with low sampling rate")
+        self.verboseprint("Analysing intervals with low sampling rate")
         time_btw = self.df.index[1:] - self.df.index[:-1]
         ind_tmp = time_btw > timedelta(hours=self.hours_low_sampling)
         start_ind = np.concatenate((ind_tmp, [False]))
@@ -83,13 +87,13 @@ class Observation:
 
     @lazyprop
     def intervals_low_diversity(self):
-        print("Analysing intervals with low diversity")
+        self.verboseprint("Analysing intervals with low diversity")
         rolling = Rolling(self.df.ix[:, 0].values.ravel(), self.df.index)
         return rolling.intervals()
 
     @lazyprop
     def intervals_bad_level(self):
-        print("Analysing intervals with bad level")
+        self.verboseprint("Analysing intervals with bad level")
         bad_timestamp_value = self.df.index[((self.df == self.df.max()[0]) | (self.df == 0)).any(axis=1)]
         if self.ncol == 4:
             is_bad = np.vectorize(lambda label: label in ["Bad", "Bad/M"])
