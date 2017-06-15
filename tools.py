@@ -33,7 +33,7 @@ def sequence_to_interval(sequence, threshold=15, plot=False):
     i = 0
     while (i < len(sequence_diff)):
         start = sequence[i]
-        while (i < len(sequence_diff) and sequence_diff[i] < threshold):
+        while (i < len(sequence_diff) and sequence_diff[i] <= threshold):
             i += 1
         end = sequence[i]
         i += 1

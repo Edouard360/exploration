@@ -24,7 +24,7 @@ class Interaction:
 
     def add_filter(self,name,df_filter):
         idx_filtered = [i for i in range(len(self.intervals)) if df_filter(self.intervals[i])]
-        self.idx_dict[name] = {"idx": idx_filtered}
+        self.idx_dict[name] = {"idx": idx_filtered,"order" : len(self.idx_dict)}
 
     def interact(self):
         list_dropdown = list(self.idx_dict.keys())

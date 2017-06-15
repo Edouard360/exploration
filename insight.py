@@ -7,6 +7,7 @@ insight.py
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, DateFormatter
 import pandas as pd
+import numpy as np
 from constants import *
 
 class Plot:
@@ -63,5 +64,17 @@ class Plot:
         axes[0].xaxis.set_major_locator(hour_locator)
         axes[0].xaxis.set_major_formatter(DateFormatter("%H:%M"))
 
+        plt.tight_layout()
+        plt.show()
+
+    def plot_fft(self,i,j,w_length,offset,**kargs):
+        fig, axes = plt.subplots(2, 2, figsize=(12, 6))
+        df_s = [self.list_df[i], self.list_df[j]]
+        if(offset!=-1):
+            df_s = [df.iloc[offset:offset+w_length] for df in df_s]
+        for k,df in enumerate(df_s):
+            fft_df = pd.DataFrame(index=range(1,df.shape[0]), data=np.abs(np.fft.fft(df[deb1], axis=0))[1:], columns=deb1)
+            axes[k, 0].plot(df[deb1].values)
+            fft_df.plot(ax=axes[k,1], **kargs)
         plt.tight_layout()
         plt.show()

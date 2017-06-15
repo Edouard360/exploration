@@ -9,9 +9,10 @@ import dateutil.parser
 
 class Observation:
     def __init__(self, path, reactor_site, suffix_list, format="%Y-%m-%dT%H:%M:%S.000Z", ncol=2, hours_bad_level=15,
-                 hours_interval=0, min_hours=5, verbose=0):
+                 hours_interval=0, min_hours=5, hours_backfill = 1, verbose=0):
         self.verboseprint = print if verbose else lambda *a, **k: None
         self.verboseprint("Loading in memory %i observations..." % (int(len(suffix_list)),))
+        self.hours_backfill = hours_backfill
         # 2013-2015 : format : "%d-%b-%y %H:%M:%S.0"
         files_name = [reactor_site + "-" + suffix + ".txt" for suffix in suffix_list]
         list_df = [pd.read_csv(path + file_name, sep=";") for file_name in files_name]
@@ -25,12 +26,12 @@ class Observation:
             df['date'] = pd.to_datetime(df['date'], format=format)
             df.set_index('date', inplace=True)
         self.verboseprint("Concatenation...")
-        df = pd.concat(list_df, axis=1)
+        self.df = pd.concat(list_df, axis=1)
+        self.change_isolated_wrong_values()
         self.verboseprint("Forward Filling...")
-        df.fillna(method='ffill', inplace=True)
+        self.df.fillna(method='ffill', inplace=True)
         self.verboseprint("Backward Filling...")
-        df.fillna(method='bfill', inplace=True)
-        self.df = df
+        self.df.fillna(method='bfill', inplace=True)
         self.df.reactor_site = reactor_site
         if self.ncol == 4:
             self.df = df.ix[:, ["value" in column for column in df.columns]]
@@ -39,6 +40,14 @@ class Observation:
         self.hours_interval = hours_interval  # The duration of each interval ! 0 if the max value possible is desired
         self.hours_low_sampling = 1
         self.min_hours = min_hours  # The min length to split the dataframe
+
+    def change_isolated_wrong_values(self):
+        for column in self.df:
+            bad_timestamps = self.df.index[((self.df[column] == self.df[column].max()) | (self.df[column] == 0))]
+            bad_timestamps = sequence_to_interval(bad_timestamps, timedelta(minutes=10)) # Stricly consecutive wrong values
+            to_change_index = (bad_timestamps[:,1] - bad_timestamps[:,0]) <= timedelta(hours=self.hours_backfill)
+            for begin, end in bad_timestamps[to_change_index]:
+                self.df[column][begin:end] = np.nan
 
     def split_valid_intervals_df(self):
         return self.longest_valid_intervals.split_accordingly(self.df)
@@ -88,7 +97,7 @@ class Observation:
     @lazyprop
     def intervals_low_diversity(self):
         self.verboseprint("Analysing intervals with low diversity")
-        rolling = Rolling(self.df.ix[:, 0].values.ravel(), self.df.index)
+        rolling = Rolling(self.df.iloc[:, 0].values.ravel(), self.df.index)
         return rolling.intervals()
 
     @lazyprop
