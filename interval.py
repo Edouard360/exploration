@@ -7,6 +7,8 @@ Created on Thu Apr 27 08:23:37 2017
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import timedelta
+from scipy.signal import argrelextrema
 
 
 class Interval:
@@ -43,6 +45,17 @@ class Interval:
             for interval_date in list_of_intervals:
                 self.add_interval(interval_date)
 
+    def update_conditionally(self, list_of_intervals):
+        to_update = []
+        for i in range(len(list_of_intervals)):
+            begin, end = list_of_intervals[i]
+            ind_low, ind_high = np.sum(begin > self.intervals[:, 1]), np.sum(
+                end > self.intervals[:, 0])
+            if (ind_low != ind_high):
+                # Then there is crossing
+                to_update += [i]
+        self.update(list_of_intervals[np.array(to_update)])
+
     def split_between(self, df):
         intervals = []
         first = self.intervals[0, 0]
@@ -58,6 +71,41 @@ class Interval:
         for begin, end in self.intervals:
             intervals += [df[begin:end]]
         return intervals
+
+    def before(self, time=timedelta(days=1)):
+        if (type(time) is not timedelta):
+            time = timedelta(days=time)
+        intervals_begin = self.intervals[:, 0].reshape(-1, 1)  # The end of **valid** intervals !
+        intervals = np.concatenate((intervals_begin - time, intervals_begin), axis=1)
+        return intervals
+
+    def after(self, time=timedelta(days=1)):
+        if (type(time) is not timedelta):
+            time = timedelta(days=time)
+        intervals_end = self.intervals[:, -1].reshape(-1, 1)  # The end of **valid** intervals !
+        intervals = np.concatenate((intervals_end, intervals_end + time), axis=1)
+        return intervals
+
+    def between(self, time=timedelta(days=1)):
+        # time : the margin
+        if (type(time) is not timedelta):
+            time = timedelta(days=time)
+        intervals = []
+        first = self.intervals[0, 0]
+        last = self.intervals[-1, -1]
+        intervals += [[None, first - time]]
+        for begin, end in self.intervals.reshape(-1)[1:-1].reshape(-1, 2):
+            intervals += [[begin + time, end - time]]
+        intervals += [[last + time, None]]
+        return intervals
+
+    def enlarge(self, time):
+        begin = self.intervals[:, 0].reshape(-1, 1) - time
+        end = self.intervals[:, 1].reshape(-1, 1) + time
+        return np.concatenate([begin, end], axis=1)
+
+    def filter(self, time):
+        self.intervals = self.intervals[(self.intervals[:, 1] - self.intervals[:, 0]) >= time]
 
     def plot(self, axe=None, y_pos=1, **kargs):
         if axe is None:

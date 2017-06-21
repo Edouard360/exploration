@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from datetime import timedelta
 
 
 def lazyprop(fn):
@@ -12,6 +13,7 @@ def lazyprop(fn):
         return getattr(self, attr_name)
 
     return _lazyprop
+
 
 def sequence_to_interval(sequence, threshold=15, plot=False):
     sequence_diff = np.array([(sequence[i + 1] - sequence[i]) for i in range(len(sequence) - 1)])
@@ -30,3 +32,19 @@ def sequence_to_interval(sequence, threshold=15, plot=False):
 
     intervals = np.array([time_index for interval in intervals for time_index in interval])
     return intervals.reshape(-1, 2)
+
+
+def drop_close_extrema(df, time=timedelta(days=1)):
+    # No nan values theoretically
+    len(df.index)
+    i_ref = df.index[0]
+    to_remove = []
+    for i in df.index:
+        if (i_ref < i - time):
+            i_ref = i
+        elif (df[i] < df[i_ref]):
+            to_remove += [i]
+        elif (df[i] > df[i_ref]):
+            to_remove += [i_ref]
+            i_ref = i
+    return to_remove

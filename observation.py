@@ -3,10 +3,12 @@ import numpy as np
 from datetime import timedelta
 from tools import sequence_to_interval, lazyprop
 from interval import Interval
+from constants import *
+
 
 class Observation:
     def __init__(self, path, reactor_site, suffix_list, format="%Y-%m-%dT%H:%M:%S.000Z",
-                 hours_backfill = 1, verbose=0, ignore_keys = []):
+                 hours_backfill=1, verbose=0, ignore_keys=[]):
         self.verboseprint = print if verbose else lambda *a, **k: None
         self.verboseprint("Loading in memory %i observations..." % (int(len(suffix_list)),))
         self.hours_backfill = hours_backfill
@@ -31,8 +33,8 @@ class Observation:
         self.verboseprint("Changing isolated wrong values...")
         for column in self.df:
             bad_labels = self.df.index[((self.df[column] == self.df[column].max()) | (self.df[column] == 0))]
-            bad_labels = sequence_to_interval(bad_labels, timedelta(minutes=10)) # Stricly consecutive wrong values
-            to_change_index = (bad_labels[:,1] - bad_labels[:,0]) <= timedelta(hours=self.hours_backfill)
+            bad_labels = sequence_to_interval(bad_labels, timedelta(minutes=10))  # Stricly consecutive wrong values
+            to_change_index = (bad_labels[:, 1] - bad_labels[:, 0]) <= timedelta(hours=self.hours_backfill)
             for begin, end in bad_labels[to_change_index]:
                 self.df[column][begin:end] = np.nan
             self.bad_labels_dict[column] = bad_labels[~to_change_index]
@@ -40,13 +42,26 @@ class Observation:
     def split_between(self):
         return self.intervals_to_remove.split_between(self.df)
 
+    @lazyprop
+    def low_regime_intervals(self):
+        time_precision = '6H'
+        low_regime_merge_time = 15  # In days: The merging time for low regime
+        margin_intervals_to_remove = 1  # In days: Be careful, a high time_precision can make this wrong !
+        filter_spike = 3  # In days: below that, the interval is considered as a spike !
+        subsample = self.full_concatenated_df[deb1[0]].resample(time_precision, label='right').min()
+        low_regime = sequence_to_interval(subsample.index[(subsample < 200)], timedelta(days=low_regime_merge_time))
+        low_regime = Interval(low_regime)
+        low_regime.update_conditionally(self.intervals_to_remove.enlarge(timedelta(days=margin_intervals_to_remove)))
+        low_regime.filter(timedelta(days=filter_spike))
+        return low_regime
+
     def full_concatenated_df(self):
         return pd.concat(self.split_between(), axis=0)
 
     @lazyprop
     def intervals_to_remove(self):
-        interval_to_remove= Interval([])
+        interval_to_remove = Interval([])
         for key, intervals_bad_level in self.bad_labels_dict.items():
-            if(key not in self.ignore_keys):
+            if (key not in self.ignore_keys):
                 interval_to_remove.update(intervals_bad_level)
         return interval_to_remove
