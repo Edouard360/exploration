@@ -29,11 +29,27 @@ class Observation:
         self.verboseprint("Backward Filling...")
         self.df.fillna(method='bfill', inplace=True)
 
+        self.compute_intervals_to_remove()
+        self.compute_full_concatenated_df()
+        self.compute_low_regime_intervals()
+
+    def change_isolated_wrong_values(self):
+        self.verboseprint("Changing isolated wrong values...")
+        for column in self.df:
+            bad_labels = self.df.index[((self.df[column] == self.df[column].max()) | (self.df[column] == 0))]
+            bad_labels = sequence_to_interval(bad_labels, timedelta(minutes=10))  # Stricly consecutive wrong values
+            to_change_index = (bad_labels[:, 1] - bad_labels[:, 0]) <= timedelta(hours=self.hours_backfill)
+            for begin, end in bad_labels[to_change_index]:
+                self.df[column][begin:end] = np.nan
+            self.bad_labels_dict[column] = bad_labels[~to_change_index]
+
+    def compute_intervals_to_remove(self):
         self.intervals_to_remove = Interval([])
         for key, intervals_bad_level in self.bad_labels_dict.items():
             if (key not in self.ignore_keys):
                 self.intervals_to_remove.update(intervals_bad_level)
 
+    def compute_low_regime_intervals(self):
         time_precision = '6H'
         low_regime_merge_time = 15  # In days: The merging time for low regime
         margin_intervals_to_remove = 1  # In days: Be careful, a high time_precision can make this wrong !
@@ -47,18 +63,5 @@ class Observation:
             self.intervals_to_remove.enlarge(timedelta(days=margin_intervals_to_remove)))
         self.low_regime_intervals.filter(timedelta(days=filter_spike))
 
-    def change_isolated_wrong_values(self):
-        self.verboseprint("Changing isolated wrong values...")
-        for column in self.df:
-            bad_labels = self.df.index[((self.df[column] == self.df[column].max()) | (self.df[column] == 0))]
-            bad_labels = sequence_to_interval(bad_labels, timedelta(minutes=10))  # Stricly consecutive wrong values
-            to_change_index = (bad_labels[:, 1] - bad_labels[:, 0]) <= timedelta(hours=self.hours_backfill)
-            for begin, end in bad_labels[to_change_index]:
-                self.df[column][begin:end] = np.nan
-            self.bad_labels_dict[column] = bad_labels[~to_change_index]
-
-    def split_between(self):
-        return self.intervals_to_remove.split_between(self.df)
-
-    def full_concatenated_df(self):
-        return pd.concat(self.split_between(), axis=0)
+    def compute_full_concatenated_df(self):
+        self.full_concatenated_df = pd.concat(self.intervals_to_remove.split_between(self.df),axis=0)

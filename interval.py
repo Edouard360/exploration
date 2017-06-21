@@ -8,7 +8,6 @@ Created on Thu Apr 27 08:23:37 2017
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import timedelta
-from scipy.signal import argrelextrema
 
 
 class Interval:
@@ -56,15 +55,13 @@ class Interval:
                 to_update += [i]
         self.update(list_of_intervals[np.array(to_update)])
 
-    def split_between(self, df):
-        intervals = []
-        first = self.intervals[0, 0]
-        last = self.intervals[-1, -1]
-        intervals += [df[:first].iloc[:-1]]
-        for begin, end in self.intervals.reshape(-1)[1:-1].reshape(-1, 2):
-            intervals += [df[begin:end].iloc[1:-1]]
-        intervals += [df[last:].iloc[1:]]
-        return intervals
+    def split_between(self, df, time=timedelta(days=0), strictly=True):
+        split_df = Interval(self.between(time)).split_accordingly(df)
+        if strictly:
+            split_df[0] = split_df[0].iloc[:-1]
+            for i in range(1, len(split_df) - 1):
+                split_df[i] = split_df[i].iloc[1:-1]
+        return split_df
 
     def split_accordingly(self, df):
         intervals = []
@@ -86,7 +83,7 @@ class Interval:
         intervals = np.concatenate((intervals_end, intervals_end + time), axis=1)
         return intervals
 
-    def between(self, time=timedelta(days=1)):
+    def between(self, time=timedelta(days=3)):
         # time : the margin
         if (type(time) is not timedelta):
             time = timedelta(days=time)
@@ -95,7 +92,9 @@ class Interval:
         last = self.intervals[-1, -1]
         intervals += [[None, first - time]]
         for begin, end in self.intervals.reshape(-1)[1:-1].reshape(-1, 2):
-            intervals += [[begin + time, end - time]]
+            begin, end = begin + time, end - time
+            if (begin <= end):
+                intervals += [[begin, end]]
         intervals += [[last + time, None]]
         return intervals
 
