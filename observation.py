@@ -29,6 +29,24 @@ class Observation:
         self.verboseprint("Backward Filling...")
         self.df.fillna(method='bfill', inplace=True)
 
+        self.intervals_to_remove = Interval([])
+        for key, intervals_bad_level in self.bad_labels_dict.items():
+            if (key not in self.ignore_keys):
+                self.intervals_to_remove.update(intervals_bad_level)
+
+        time_precision = '6H'
+        low_regime_merge_time = 15  # In days: The merging time for low regime
+        margin_intervals_to_remove = 1  # In days: Be careful, a high time_precision can make this wrong !
+        filter_spike = 3  # In days: below that, the interval is considered as a spike !
+
+        subsample = self.full_concatenated_df[deb1[0]].resample(time_precision, label='right').min()
+        self.low_regime_intervals = sequence_to_interval(subsample.index[(subsample < 200)],
+                                                         timedelta(days=low_regime_merge_time))
+        self.low_regime_intervals = Interval(self.low_regime_intervals)
+        self.low_regime_intervals.update_conditionally(
+            self.intervals_to_remove.enlarge(timedelta(days=margin_intervals_to_remove)))
+        self.low_regime_intervals.filter(timedelta(days=filter_spike))
+
     def change_isolated_wrong_values(self):
         self.verboseprint("Changing isolated wrong values...")
         for column in self.df:
@@ -42,26 +60,5 @@ class Observation:
     def split_between(self):
         return self.intervals_to_remove.split_between(self.df)
 
-    @lazyprop
-    def low_regime_intervals(self):
-        time_precision = '6H'
-        low_regime_merge_time = 15  # In days: The merging time for low regime
-        margin_intervals_to_remove = 1  # In days: Be careful, a high time_precision can make this wrong !
-        filter_spike = 3  # In days: below that, the interval is considered as a spike !
-        subsample = self.full_concatenated_df[deb1[0]].resample(time_precision, label='right').min()
-        low_regime = sequence_to_interval(subsample.index[(subsample < 200)], timedelta(days=low_regime_merge_time))
-        low_regime = Interval(low_regime)
-        low_regime.update_conditionally(self.intervals_to_remove.enlarge(timedelta(days=margin_intervals_to_remove)))
-        low_regime.filter(timedelta(days=filter_spike))
-        return low_regime
-
     def full_concatenated_df(self):
         return pd.concat(self.split_between(), axis=0)
-
-    @lazyprop
-    def intervals_to_remove(self):
-        interval_to_remove = Interval([])
-        for key, intervals_bad_level in self.bad_labels_dict.items():
-            if (key not in self.ignore_keys):
-                interval_to_remove.update(intervals_bad_level)
-        return interval_to_remove
