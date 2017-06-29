@@ -2,6 +2,7 @@ from scipy.signal import argrelextrema
 from datetime import timedelta
 import pandas as pd
 import numpy as np
+from constants import *
 
 
 class ScoreAnalysis:
@@ -19,7 +20,8 @@ class ScoreAnalysis:
 
     def _drop_close_extrema(self, df):
         # No nan values theoretically
-        len(df.index)
+        if len(df.index) == 0:
+            return df
         i_ref = df.index[0]
         to_remove = []
         for i in df.index:
@@ -35,5 +37,5 @@ class ScoreAnalysis:
     def analyse_and_sort(self, df):
         df = self._filter(df)
         df = self._argrelmax(df)
-        df = self._drop_close_extrema(df)
-        return df.index.take(np.argsort(df.values.ravel())[::-1]).tolist()
+        df = self._drop_close_extrema(df)  # by = [deb1[0]]
+        return df.sort_values(by=[deb1[0]])[::-1]

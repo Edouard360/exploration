@@ -61,6 +61,7 @@ class Interval:
             split_df[0] = split_df[0].iloc[:-1]
             for i in range(1, len(split_df) - 1):
                 split_df[i] = split_df[i].iloc[1:-1]
+            split_df[-1] = split_df[-1].iloc[1:]
         return split_df
 
     def split_accordingly(self, df):
@@ -100,8 +101,15 @@ class Interval:
 
     def enlarge(self, time):
         begin = self.intervals[:, 0].reshape(-1, 1) - time
-        end = self.intervals[:, 1].reshape(-1, 1) + time
+        end = self.intervals[:, -1].reshape(-1, 1) + time
         return np.concatenate([begin, end], axis=1)
+
+    def is_in(self,timestamps):
+        is_in = []
+        for i,timestamp in enumerate(timestamps):
+            if(np.sum(timestamp >= self.intervals[:, 0]) == 1 + np.sum(timestamp > self.intervals[:, 1])):
+                is_in+=[i]
+        return np.array(is_in)
 
     def filter(self, time):
         self.intervals = self.intervals[(self.intervals[:, 1] - self.intervals[:, 0]) >= time]

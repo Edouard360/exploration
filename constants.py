@@ -7,3 +7,12 @@ deb35 = ["DEB3-5"]  # Débit d'injection au joint
 vit = ["VIT-1", "VIT-2", "VIT-3", "VIT-4"]  # Vitesse de rotation
 pre = ["PRE-"]
 pui = ["PUI-"]
+MAX_VALUE = 32767.0
+THRESHOLD = 1000
+MAX_GRANULARITY = 10 # max granularity in minutes
+
+TREND_UP = "t_u"
+TREND_DOWN = "t_d"
+OSCILLATION = "osc"
+STEP = "step"
+SPIKE = "spike"

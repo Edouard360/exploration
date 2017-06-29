@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, DateFormatter
 from constants import *
 
-def plot_all(df,axes):
+def plot_all_(df,axes):
     [d1, d2, d3, d4] = axes[0].plot(df[deb1])
     axes[0].legend([d1, d2, d3, d4], deb1, loc='best')
     axes[0].set_title("Débit de fuite au joint 1 (Gamme Large)")
@@ -41,4 +41,49 @@ def plot_all(df,axes):
     axes[0].xaxis.set_major_formatter(DateFormatter("%H:%M"))
 
     plt.tight_layout()
+    plt.show()
+
+def plot_all_stack(df):
+    if hasattr(df, "reactor_site"):
+        print("Nuclear reactor : " + str(df.reactor_site))
+    print("From : " + str(df.index[0].strftime("%d/%m/%Y"))
+          + "\nTo   : " + str(df.index[-1].strftime("%d/%m/%Y")))
+    width = 10
+    height = 20
+    fig, axes = plt.subplots(nrows=8, ncols=1, figsize=(width, height), sharex=True)
+    plot_all_(df, axes)
+
+def plot_all_tight(df):
+    if hasattr(df, "reactor_site"):
+        print("Nuclear reactor : " + str(df.reactor_site))
+    print("From : " + str(df.index[0].strftime("%d/%m/%Y"))
+          + "\nTo   : " + str(df.index[-1].strftime("%d/%m/%Y")))
+    width = 12
+    height = 12
+    fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(width, height), sharex=True)
+    axes = [axes[int(i % 4), int(i / 4)] for i in range(8)]
+    plot_all_(df, axes)
+
+
+def plot_single(df):
+    if hasattr(df, "reactor_site"):
+        print("Nuclear reactor : " + str(df.reactor_site))
+    print("From : " + str(df.index[0].strftime("%d/%m/%Y"))
+          + "\nTo   : " + str(df.index[-1].strftime("%d/%m/%Y")))
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 4), sharex=True)
+    ax.plot(df[deb1[0]])
+    plt.show()
+
+def plot_deb_pre(df):
+    if hasattr(df, "reactor_site"):
+        print("Nuclear reactor : " + str(df.reactor_site))
+    print("From : " + str(df.index[0].strftime("%d/%m/%Y"))
+          + "\nTo   : " + str(df.index[-1].strftime("%d/%m/%Y")))
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 8), sharex=True)
+    [d1, d2, d3, d4] = axes[0].plot(df[deb1])
+    axes[0].legend([d1, d2, d3, d4], deb1, loc='best')
+    axes[0].set_title("Débit de fuite au joint 1 (Gamme Large)")
+    axes[1].plot(df[pre], 'b')
+    axes[1].set_title("Pression (BAR)")
+    axes[1].set_facecolor("#d1d1d1")
     plt.show()
