@@ -1,5 +1,4 @@
 from datetime import timedelta
-from interval import Interval
 from constants import *
 
 class Scale:
@@ -9,9 +8,6 @@ class Scale:
 
     def scale(self, df):
         return df.resample(str(self.n_units*10)+"T").median() # 'T' is 'min'
-
-    def get_intervals(self, intervals):
-        return Interval(intervals).enlarge(self.timedelta)
 
 class DayScale(Scale):
     def __init__(self, days=1):
@@ -24,11 +20,4 @@ class HourScale(Scale):
 class MinutesScale(Scale):
     def __init__(self, minutes=10):
         assert minutes%MAX_GRANULARITY == 0, "Max granularity is 10 minutes"
-        super(MinutesScale, self).__init__(n_units=6*int(minutes/10))
-
-class NoScale(MinutesScale):
-    def __init__(self):
-        super(NoScale, self).__init__(minutes=10)
-
-    def scale(self, df):
-        return df
+        super(MinutesScale, self).__init__(n_units=int(minutes/10))

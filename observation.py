@@ -8,13 +8,13 @@ from constants import *
 
 class Observation:
     def __init__(self, path, reactor_site, suffix_list, format="%Y-%m-%dT%H:%M:%S.000Z",
-                 hours_backfill=1, verbose=0, ignore_keys=[], remove_on = [deb1[0]]):
+                 hours_backfill=1, verbose=0, ignore_keys=[], remove_on=[deb1[0]]):
         self.verboseprint = print if verbose else lambda *a, **k: None
         self.verboseprint("Loading in memory %i observations..." % (int(len(suffix_list)),))
         self.hours_backfill = hours_backfill
         files_name = [reactor_site + "-" + suffix + ".txt" for suffix in suffix_list]
         list_df = [pd.read_csv(path + file_name, sep=";") for file_name in files_name]
-        self.ignore_keys = ignore_keys # TODO : remove deprecated
+        self.ignore_keys = ignore_keys  # TODO : remove deprecated
         self.remove_on = remove_on
         for df, tag in zip(list_df, suffix_list):
             df.columns = ["date", tag]
@@ -37,7 +37,7 @@ class Observation:
     def change_isolated_wrong_values(self):
         self.verboseprint("Changing isolated wrong values...")
         for column in self.df:
-            bad_labels = self.df.index[((self.df[column] == MAX_VALUE) | (self.df[column] == 0))] ## >= THRESHOLD
+            bad_labels = self.df.index[((self.df[column] == MAX_VALUE) | (self.df[column] == 0))]  ## >= THRESHOLD
             bad_labels = sequence_to_interval(bad_labels, timedelta(minutes=10))  # Stricly consecutive wrong values
             to_change_index = (bad_labels[:, 1] - bad_labels[:, 0]) <= timedelta(hours=self.hours_backfill)
             for begin, end in bad_labels[to_change_index]:
@@ -55,12 +55,13 @@ class Observation:
                 self.intervals_to_remove.update(intervals_bad_level)
 
     def compute_low_regime_intervals(self):
-        #time_precision = '10m'#'6H'
+        # time_precision = '10m'#'6H'
         low_regime_merge_time = timedelta(days=15)  # In days: The merging time for low regime
-        margin_intervals_to_remove = timedelta(minutes=10)  # In days: Be careful, a high time_precision can make this wrong !
+        margin_intervals_to_remove = timedelta(
+            minutes=30)  # Initially 10 # In days: Be careful, a high time_precision can make this wrong !
         filter_spike = timedelta(hours=1)  # In days: below that, the interval is considered as a spike !
 
-        #subsample = self.full_concatenated_df[deb1[0]].resample(time_precision, label='right').min()
+        # subsample = self.full_concatenated_df[deb1[0]].resample(time_precision, label='right').min()
         subsample = self.full_concatenated_df[deb1[0]]
         self.low_regime_intervals = sequence_to_interval(subsample.index[(subsample < 200)],
                                                          low_regime_merge_time)
@@ -68,6 +69,7 @@ class Observation:
         self.low_regime_intervals.update_conditionally(
             self.intervals_to_remove.enlarge(margin_intervals_to_remove))
         self.low_regime_intervals.filter(filter_spike)
+        self.low_regime_intervals.merge_close_intervals()
 
     def compute_full_concatenated_df(self):
-        self.full_concatenated_df = pd.concat(self.intervals_to_remove.split_between(self.df),axis=0)
+        self.full_concatenated_df = pd.concat(self.intervals_to_remove.split_between(self.df), axis=0)

@@ -8,6 +8,7 @@ Created on Thu Apr 27 08:23:37 2017
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import timedelta
+from tools import merge_close_intervals
 
 
 class Interval:
@@ -104,12 +105,15 @@ class Interval:
         end = self.intervals[:, -1].reshape(-1, 1) + time
         return np.concatenate([begin, end], axis=1)
 
-    def is_in(self,timestamps):
+    def is_in(self, timestamps):
         is_in = []
-        for i,timestamp in enumerate(timestamps):
-            if(np.sum(timestamp >= self.intervals[:, 0]) == 1 + np.sum(timestamp > self.intervals[:, 1])):
-                is_in+=[i]
+        for i, timestamp in enumerate(timestamps):
+            if (np.sum(timestamp >= self.intervals[:, 0]) == 1 + np.sum(timestamp > self.intervals[:, 1])):
+                is_in += [i]
         return np.array(is_in)
+
+    def merge_close_intervals(self, threshold=timedelta(days=1)):
+        self.intervals = merge_close_intervals(self.intervals, threshold)
 
     def filter(self, time):
         self.intervals = self.intervals[(self.intervals[:, 1] - self.intervals[:, 0]) >= time]

@@ -35,7 +35,11 @@ class ScoreAnalysis:
         return df.loc[df.index.difference(pd.Index(to_remove))]
 
     def analyse_and_sort(self, df):
+        if (type(df) is pd.Series):
+            df = df.to_frame("score")
+        elif (type(df) is pd.DataFrame):
+            df.columns = ["score"]
         df = self._filter(df)
         df = self._argrelmax(df)
         df = self._drop_close_extrema(df)  # by = [deb1[0]]
-        return df.sort_values(by=[deb1[0]])[::-1]
+        return df.sort_values(by=["score"])[::-1]
