@@ -1,11 +1,20 @@
-from scipy.signal import argrelextrema
 from datetime import timedelta
-import pandas as pd
+
 import numpy as np
-from constants import *
+import pandas as pd
+from scipy.signal import argrelextrema
 
 
 class ScoreAnalysis:
+    """
+    There is, for each anomaly type, a contiguous dataframe of scores for this anomaly, for the whole series.
+    Since we are only looking for the anomalies, we extract the extrema of this dataframe.
+    The timestamps corresponding to these extrema are the locations of the anomalies.
+    The pipeline is as follow:
+    - First we filter the score to keep only the one above a certain anomaly-specific threshold.
+    - Then we extract the local maxima, since they correspond to isolated, high value scores.
+    - Finally we remove the anomalies if there are too close given a certain time threshold `drop_time`.
+    """
     def __init__(self, threshold, drop_time=timedelta(days=30)):
         self.drop_time = drop_time
         self.threshold = threshold
@@ -35,6 +44,11 @@ class ScoreAnalysis:
         return df.loc[df.index.difference(pd.Index(to_remove))]
 
     def analyse_and_sort(self, df):
+        """
+        The pipeline is explained above.
+        :param df: A series or dataframe containing one column of scores only
+        :return:
+        """
         if (type(df) is pd.Series):
             df = df.to_frame("score")
         elif (type(df) is pd.DataFrame):

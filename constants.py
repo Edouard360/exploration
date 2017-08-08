@@ -1,3 +1,8 @@
+"""
+The constants folder to index the physical variables.
+We group them logically.
+"""
+
 deb1 = ["DEB1-1", "DEB1-2", "DEB1-3", "DEB1-4"]  # Débit de fuite au joint 1 (Gamme Large)
 deb2 = ["DEB2-1", "DEB2-2", "DEB2-3", "DEB2-4"]  # Débit de fuite au joint 1 (Gamme Étroite)
 deb3 = ["DEB3-1", "DEB3-2", "DEB3-3", "DEB3-4"]  # Débit d'injection au joint
@@ -10,9 +15,3 @@ pui = ["PUI-"]
 MAX_VALUE = 32767.0
 THRESHOLD = 1000
 MAX_GRANULARITY = 10 # max granularity in minutes
-
-TREND_UP = "t_u"
-TREND_DOWN = "t_d"
-OSCILLATION = "osc"
-STEP = "step"
-SPIKE = "spike"

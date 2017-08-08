@@ -1,24 +1,19 @@
-import matplotlib.pyplot as plt
-import numpy as np
-from datetime import timedelta
-import pandas as pd
-from collections import deque
 import heapq
+from collections import deque
+from datetime import timedelta
+
+import numpy as np
+import pandas as pd
 
 
-def lazyprop(fn):
-    attr_name = '_lazy_' + fn.__name__
-
-    @property
-    def _lazyprop(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
-        return getattr(self, attr_name)
-
-    return _lazyprop
-
-
-def sequence_to_interval(sequence, threshold=15, plot=False):
+def sequence_to_interval(sequence, threshold=15):
+    """
+    Aggregate a sequence of points to form intervals; if sequence is an array of integer; or
+    Aggregate a sequence of points in time to form time intervals; if sequence is an array of timestamps.
+    :param sequence: an array - of integer or timestamps.
+    :param threshold: should be a timedelta object like `timedelta(days=1)` if it is a sequence of timestamps. Otherwise, an integer
+    :return:
+    """
     sequence_diff = np.array([(sequence[i + 1] - sequence[i]) for i in range(len(sequence) - 1)])
     intervals = []
     i = 0
@@ -30,14 +25,18 @@ def sequence_to_interval(sequence, threshold=15, plot=False):
         i += 1
         intervals.append((start, end))
 
-    if (plot):
-        plt.plot(sequence_diff, np.ones(len(sequence_diff)), 'ro')
-
     intervals = np.array([time_index for interval in intervals for time_index in interval])
     return intervals.reshape(-1, 2)
 
 
 def merge_close_intervals(intervals, threshold=timedelta(days=1)):
+    """
+    Merge an array of sorted intervals if there extremity is close enough.
+    The `threshold` determines the closeness.
+    :param intervals: an array of intervals.
+    :param threshold: should be a timedelta object like `timedelta(days=1)`.
+    :return:
+    """
     intervals_diff = intervals[1:, 0] - intervals[:-1, 1]
     new_intervals = []
     i = 0
@@ -69,6 +68,22 @@ def drop_close_extrema(df, time=timedelta(days=1)):
 
 
 def combine(scores_to_update, scores_exempt, widths, multiply=None):
+    """
+    The combine function deals with the multi-scale aspect of anomaly detection.
+    For instance for the trend_up anomaly there are scales:
+    1d, 7d, 30d, 180d.
+    We might want to remove the instances of 1d anomaly that are "included" in the instances of 7d or 30d or 180d.
+    If we want to let 7d, 30d, 180d intact, we would write
+    - `widths = [timedelta(days = 1),timedelta(days = 7),timedelta(days = 30),timedelta(days = 180)]`
+    - `combine([score_df_1d],[score_df_7d,score_df_30d,score_df_180d], widths = widths)`
+    Otherwise,if we want all dataframes to be influenced, for instance we might want a 1d trend_up to remove the trend_up at larger scales if there are less significant, we might write:
+    - `combine([score_df_1d, score_df_7d,score_df_30d,score_df_180d], [], widths = widths)`
+    :param scores_to_update: A list of dataframe from which we will remove false positives, that is an anomaly detected at a scale that actually belong to another scale.
+    :param scores_exempt: If any, a list of dataframe of scores from which we don't remove anything.
+    :param widths: An array of the different widths of influence of each dataframe.
+    :param multiply: Optionnal. An array of multiplying factors, to weigh the importance of the scores.
+    :return:
+    """
     scores_for_queue = [score.sort_index() for score in scores_to_update] + [score.sort_index() for score in
                                                                              scores_exempt]
     if multiply is None:
@@ -121,8 +136,3 @@ def combine(scores_to_update, scores_exempt, widths, multiply=None):
 
     return [pd.DataFrame(index=index, data=np.array(data).reshape(-1, 1), columns=["score"]) for index, data in
             zip(index_array, data_array)]
-
-
-def corr(values_1, values_2):
-    (values_1 - np.mean(values_1)).dot(values_2 - np.mean(values_2)) / (
-        len(values_1) * np.sqrt((np.var(values_1) * np.var(values_2))))

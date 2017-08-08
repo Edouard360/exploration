@@ -1,14 +1,38 @@
-import pandas as pd
-import numpy as np
 from datetime import timedelta
-from tools import sequence_to_interval, lazyprop
-from interval import Interval
+
+import numpy as np
+import pandas as pd
+
 from constants import *
+from interval import Interval
+from tools import sequence_to_interval
 
 
 class Observation:
+    """
+    Observation is used to:
+    1. load the data
+    2. fill the missing values
+    3. change the `bad` values (32767) if possible, or else remove them
+    4. divide the dataframes into the cycles of the nuclear reactor
+        -> most of this pipeling is problem specific. It is needed since the data doesn't come as a `clean` multivariate time series.
+    Indeed there are missing values, and `bad` values (32767), but also there are periodic gaps in the data (approximately the size of a month), which would impact our analysis if left unchanged.
+    We might therefore be interested in removing these periodic gaps from our study.
+    This is where `low_regime_intervals` comes in, identifying these periods.
+    """
     def __init__(self, path, reactor_site, suffix_list, format="%Y-%m-%dT%H:%M:%S.000Z",
                  hours_backfill=1, verbose=0, ignore_keys=[], remove_on=[deb1[0]]):
+        """
+
+        :param path: the path to the folder of the data
+        :param reactor_site: the name of the reactor
+        :param suffix_list:
+        :param format:
+        :param hours_backfill:
+        :param verbose:
+        :param ignore_keys:
+        :param remove_on:
+        """
         self.verboseprint = print if verbose else lambda *a, **k: None
         self.verboseprint("Loading in memory %i observations..." % (int(len(suffix_list)),))
         self.hours_backfill = hours_backfill
@@ -35,6 +59,21 @@ class Observation:
         self.compute_low_regime_intervals()
 
     def change_isolated_wrong_values(self):
+        """
+        Some values of the dataframe can be singled out and replaced by the previous one, to approximate the signal.
+        -> We change them into nan's in the dataframe so that we can replace them later on
+        However there are a lot of successive contiguous `bad` values 32767, and these cannot be interpolated.
+        -> We compute the corresponding intervals for these successive problems and store them in a dictionary.
+        These intervals represent the large gap of missing values, and if too big, they will be considered to "segment" the multivariate series.
+        -> We store them in bad_labels_dict
+        From experience however, if we take all the signals "large gaps" and combine them,
+        we are left with only 1/5 of the original data, because very often,
+        there is missing data for one sensor over a long time and not for the others.
+        To avoid doing this for all sensors, we can choose, when instantiating the Observation object, a target class,
+        or some target classes, in the `remove_on` field.
+        For instance if `remove_on=[deb1[0]]` only the first sensors' "large gaps" will be taken into account for the segmentation of the time series.
+
+        """
         self.verboseprint("Changing isolated wrong values...")
         for column in self.df:
             bad_labels = self.df.index[((self.df[column] == MAX_VALUE) | (self.df[column] == 0))]  ## >= THRESHOLD
@@ -52,7 +91,7 @@ class Observation:
         self.intervals_to_remove = Interval([])
         for key, intervals_bad_level in self.bad_labels_dict.items():
             if (key not in self.ignore_keys):
-                self.intervals_to_remove.update(intervals_bad_level)
+                self.intervals_to_remove.add_intervals(intervals_bad_level)
 
     def compute_low_regime_intervals(self):
         # time_precision = '10m'#'6H'
