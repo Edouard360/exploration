@@ -26,19 +26,20 @@ class Observation:
 
         :param path: the path to the folder of the data
         :param reactor_site: the name of the reactor
-        :param suffix_list:
-        :param format:
-        :param hours_backfill:
+        :param suffix_list: all the sensors name as a list
+        :param format: the default parameter corresponds to the proper encoding format of the dates.
+        :param hours_backfill: the threshold for dealing with missing values. For more, read README.md.
         :param verbose:
         :param ignore_keys:
-        :param remove_on:
+        :param remove_on: the target sensor for missing values. If we considered all the missing values from each sensor,
+         and remove all intervals where any of the values are missing, the resulting data would be very sparse.
         """
         self.verboseprint = print if verbose else lambda *a, **k: None
         self.verboseprint("Loading in memory %i observations..." % (int(len(suffix_list)),))
         self.hours_backfill = hours_backfill
         files_name = [reactor_site + "-" + suffix + ".txt" for suffix in suffix_list]
         list_df = [pd.read_csv(path + file_name, sep=";") for file_name in files_name]
-        self.ignore_keys = ignore_keys  # TODO : remove deprecated
+        self.ignore_keys = ignore_keys
         self.remove_on = remove_on
         for df, tag in zip(list_df, suffix_list):
             df.columns = ["date", tag]
@@ -72,7 +73,6 @@ class Observation:
         To avoid doing this for all sensors, we can choose, when instantiating the Observation object, a target class,
         or some target classes, in the `remove_on` field.
         For instance if `remove_on=[deb1[0]]` only the first sensors' "large gaps" will be taken into account for the segmentation of the time series.
-
         """
         self.verboseprint("Changing isolated wrong values...")
         for column in self.df:
@@ -94,6 +94,10 @@ class Observation:
                 self.intervals_to_remove.add_intervals(intervals_bad_level)
 
     def compute_low_regime_intervals(self):
+        '''
+        This function extract the cycles of the "low regime" of the pump as intervals.
+        See paragraph cycle identification in the README.md for the explanation of the pipeline.
+        '''
         # time_precision = '10m'#'6H'
         low_regime_merge_time = timedelta(days=15)  # In days: The merging time for low regime
         margin_intervals_to_remove = timedelta(

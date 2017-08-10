@@ -1,6 +1,5 @@
 """
-The constants folder to index the physical variables.
-We group them logically.
+The constants.py file to group logically the name of physical variables.
 """
 
 deb1 = ["DEB1-1", "DEB1-2", "DEB1-3", "DEB1-4"]  # Débit de fuite au joint 1 (Gamme Large)
